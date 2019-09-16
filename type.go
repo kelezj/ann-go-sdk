@@ -33,17 +33,19 @@ func (ab *AccountBase) ParseHex() {
 
 type ContractCreate struct {
 	AccountBase
-	Code   string        `json:"code"`
-	ABI    string        `json:"abiDefinition"`
-	Params []interface{} `json:"params"`
+	Code           string        `json:"code"`
+	ABI            string        `json:"abiDefinition"`
+	Params         []interface{} `json:"params"`
+	PrivateMembers []string      `json:"private_members"`
 }
 
 type ContractMethod struct {
 	AccountBase
-	Contract string        `json:"contract"`
-	ABI      string        `json:"abiDefinition"`
-	Method   string        `json:"method"`
-	Params   []interface{} `json:"params"`
+	Contract       string        `json:"contract"`
+	ABI            string        `json:"abiDefinition"`
+	Method         string        `json:"method"`
+	Params         []interface{} `json:"params"`
+	PrivateMembers []string      `json:"private_members"`
 }
 
 func (cm *ContractMethod) ParseHex() {

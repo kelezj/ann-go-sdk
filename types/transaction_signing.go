@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/dappledger/AnnChain/utils/commu"
+	"github.com/dappledger/AnnChain/utils/private"
 	"github.com/dappledger/ann-go-sdk/common"
 	"github.com/dappledger/ann-go-sdk/crypto"
 )
@@ -52,13 +54,13 @@ func MakeSigner(config *ChainConfig, blockNumber *big.Int) Signer {
 }
 
 // SignTx signs the transaction using the given signer and private key
-func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, error) {
+func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey, isPrivate bool) (*Transaction, error) {
 	h := s.Hash(tx)
 	sig, err := crypto.Sign(h[:], prv)
 	if err != nil {
 		return nil, err
 	}
-	return tx.WithSignature(s, sig)
+	return tx.WithSignature(s, sig, isPrivate)
 }
 
 // Sender returns the address derived from the signature (V, R, S) using secp256k1
@@ -163,6 +165,34 @@ func (s EIP155Signer) Hash(tx *Transaction) common.Hash {
 	})
 }
 
+type AnnsteadSigner struct{ FrontierSigner }
+
+func (as AnnsteadSigner) Equal(s2 Signer) bool {
+	_, ok := s2.(AnnsteadSigner)
+	return ok
+}
+
+func (as AnnsteadSigner) SignatureValues(tx *Transaction, sig []byte) (r, s, v *big.Int, err error) {
+	return as.FrontierSigner.SignatureValues(tx, sig)
+}
+
+func (as AnnsteadSigner) Hash(tx *Transaction) common.Hash {
+	repPayload := new(private.ReplacePayload)
+	repPayload.Decode(tx.Data())
+	return rlpHash([]interface{}{
+		tx.data.AccountNonce,
+		tx.data.Price,
+		tx.data.GasLimit,
+		tx.data.Recipient,
+		tx.data.Amount,
+		commu.Hash(repPayload.Payload),
+	})
+}
+
+func (as AnnsteadSigner) Sender(tx *Transaction) (common.Address, error) {
+	return recoverPlain(as.Hash(tx), tx.data.R, tx.data.S, tx.data.V, true)
+}
+
 // HomesteadTransaction implements TransactionInterface using the
 // homestead rules.
 type HomesteadSigner struct{ FrontierSigner }
@@ -222,7 +252,14 @@ func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (commo
 	if Vb.BitLen() > 8 {
 		return common.Address{}, ErrInvalidSig
 	}
-	V := byte(Vb.Uint64() - 27)
+	var offset uint64
+	// private transaction has a v value of 37 or 38
+	if isPrivate(Vb) {
+		offset = 37
+	} else {
+		offset = 27
+	}
+	V := byte(Vb.Uint64() - offset)
 	if !crypto.ValidateSignatureValues(V, R, S, homestead) {
 		return common.Address{}, ErrInvalidSig
 	}
@@ -256,4 +293,8 @@ func deriveChainId(v *big.Int) *big.Int {
 	}
 	v = new(big.Int).Sub(v, big.NewInt(35))
 	return v.Div(v, big.NewInt(2))
+}
+
+func isPrivate(v *big.Int) bool {
+	return v.Cmp(big.NewInt(37)) == 0 || v.Cmp(big.NewInt(38)) == 0
 }

@@ -82,33 +82,33 @@ func (gs *GoSDK) GetTransactionByHash(hash string) (*RPCTransaction, error) {
 
 //--------------------------------EVM-------------------------
 
-func (gs *GoSDK) ContractCreate(contract *ContractCreate) (map[string]interface{}, error) {
-	return gs.contractCreate(contract)
+func (gs *GoSDK) ContractCreate(contract *ContractCreate, isPrivate bool) (map[string]interface{}, error) {
+	return gs.contractCreate(contract, isPrivate)
 }
 
-func (gs *GoSDK) ContractCall(contractMethod *ContractMethod) (string, error) {
-	return gs.contractCall(contractMethod, broadcast_tx_commit)
+func (gs *GoSDK) ContractCall(contractMethod *ContractMethod, isPrivate bool) (string, error) {
+	return gs.contractCall(contractMethod, broadcast_tx_commit, isPrivate)
 }
 
-func (gs *GoSDK) ContractAsync(contractMethod *ContractMethod) (string, error) {
-	return gs.contractCall(contractMethod, broadcast_tx_async)
+func (gs *GoSDK) ContractAsync(contractMethod *ContractMethod, isPrivate bool) (string, error) {
+	return gs.contractCall(contractMethod, broadcast_tx_async, isPrivate)
 }
 
-func (gs *GoSDK) ContractRead(contractMethod *ContractMethod) (interface{}, error) {
-	return gs.contractRead(contractMethod, 0)
+func (gs *GoSDK) ContractRead(contractMethod *ContractMethod, isPrivate bool) (interface{}, error) {
+	return gs.contractRead(contractMethod, 0, isPrivate)
 }
 
-func (gs *GoSDK) ContractReadByHeight(contractMethod *ContractMethod, height uint64) (interface{}, error) {
-	return gs.contractRead(contractMethod, height)
+func (gs *GoSDK) ContractReadByHeight(contractMethod *ContractMethod, height uint64, isPrivate bool) (interface{}, error) {
+	return gs.contractRead(contractMethod, height, isPrivate)
 }
 
 //----------------------payload---------------------------------------
-func (gs *GoSDK) Transaction(sendTx *Tx) (string, error) {
-	return gs.sendTx(sendTx, "broadcast_tx_commit")
+func (gs *GoSDK) Transaction(sendTx *Tx, isPrivate bool) (string, error) {
+	return gs.sendTx(sendTx, "broadcast_tx_commit", isPrivate)
 }
 
-func (gs *GoSDK) TransactionAsync(sendTx *Tx) (string, error) {
-	return gs.sendTx(sendTx, "broadcast_tx_async")
+func (gs *GoSDK) TransactionAsync(sendTx *Tx, isPrivate bool) (string, error) {
+	return gs.sendTx(sendTx, "broadcast_tx_async", isPrivate)
 }
 
 func (gs *GoSDK) TransactionPayLoad(txhash string) (string, error) {

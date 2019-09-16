@@ -251,13 +251,16 @@ func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 
 // WithSignature returns a new transaction with the given signature.
 // This signature needs to be in the [R || S || V] format where V is 0 or 1.
-func (tx *Transaction) WithSignature(signer Signer, sig []byte) (*Transaction, error) {
+func (tx *Transaction) WithSignature(signer Signer, sig []byte, isPrivate bool) (*Transaction, error) {
 	r, s, v, err := signer.SignatureValues(tx, sig)
 	if err != nil {
 		return nil, err
 	}
 	cpy := &Transaction{data: tx.data}
 	cpy.data.R, cpy.data.S, cpy.data.V = r, s, v
+	if isPrivate {
+		cpy.data.V = big.NewInt(0).Add(cpy.data.V, big.NewInt(10))
+	}
 	return cpy, nil
 }
 

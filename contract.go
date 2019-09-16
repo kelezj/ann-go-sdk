@@ -22,6 +22,7 @@ import (
 	"github.com/dappledger/ann-go-sdk/abi"
 	"github.com/dappledger/ann-go-sdk/common"
 	"github.com/dappledger/ann-go-sdk/crypto"
+	"github.com/dappledger/ann-go-sdk/private"
 	"github.com/dappledger/ann-go-sdk/rlp"
 	"github.com/dappledger/ann-go-sdk/types"
 )
@@ -35,8 +36,7 @@ const (
 	broadcast_tx_commit = "broadcast_tx_commit"
 )
 
-func (contract *ContractCreate) checkArgs() ([]byte, error) {
-
+func (contract *ContractCreate) checkArgs(isPrivate bool) ([]byte, error) {
 	if contract.PrivKey == "" {
 		return nil, errors.New("account privkey is empty.")
 	}
@@ -60,9 +60,13 @@ func (contract *ContractCreate) checkArgs() ([]byte, error) {
 	}
 
 	data := common.Hex2Bytes(contract.Code + initParam)
+	if isPrivate {
+		return private.NewReplacePayload(contract.PrivateMembers, data).Encode()
+	}
 	return data, nil
 }
-func (contractMethod *ContractMethod) checkArgs() (abiJson abi.ABI, data []byte, err error) {
+
+func (contractMethod *ContractMethod) checkArgs(isPrivate bool) (abiJson abi.ABI, data []byte, err error) {
 
 	if contractMethod.PrivKey == "" {
 		err = errors.New("account privkey is empty.")
@@ -80,12 +84,15 @@ func (contractMethod *ContractMethod) checkArgs() (abiJson abi.ABI, data []byte,
 		return
 	}
 	data, err = toCallData(&abiJson, contractMethod.Method, contractMethod.Params)
+	if isPrivate {
+		data, err = private.NewReplacePayload(contractMethod.PrivateMembers, data).Encode()
+	}
 	return
 }
 
-func (gs *GoSDK) contractCreate(contract *ContractCreate) (map[string]interface{}, error) {
+func (gs *GoSDK) contractCreate(contract *ContractCreate, isPrivate bool) (map[string]interface{}, error) {
 
-	data, err := contract.checkArgs()
+	data, err := contract.checkArgs(isPrivate)
 	if err != nil {
 		return nil, err
 	}
@@ -106,12 +113,12 @@ func (gs *GoSDK) contractCreate(contract *ContractCreate) (map[string]interface{
 
 	tx := types.NewContractCreation(nonce, big.NewInt(0), gs.GasLimit(), big.NewInt(0), data)
 
-	signer, sig, err := gs.signTx(privBytes, tx)
+	signer, sig, err := gs.signTx(privBytes, tx, isPrivate)
 	if err != nil {
 		return nil, err
 	}
 
-	sigTx, err := tx.WithSignature(signer, sig)
+	sigTx, err := tx.WithSignature(signer, sig, isPrivate)
 	if err != nil {
 		return nil, err
 	}
@@ -136,9 +143,9 @@ func (gs *GoSDK) contractCreate(contract *ContractCreate) (map[string]interface{
 	return response, nil
 }
 
-func (gs *GoSDK) contractCall(contractMethod *ContractMethod, funcType string) (string, error) {
+func (gs *GoSDK) contractCall(contractMethod *ContractMethod, funcType string, isPrivate bool) (string, error) {
 
-	_, data, err := contractMethod.checkArgs()
+	_, data, err := contractMethod.checkArgs(isPrivate)
 	if err != nil {
 		return "", err
 	}
@@ -160,12 +167,12 @@ func (gs *GoSDK) contractCall(contractMethod *ContractMethod, funcType string) (
 
 	tx := types.NewTransaction(nonce, toAddress, big.NewInt(0), gs.GasLimit(), big.NewInt(0), data)
 
-	signer, sig, err := gs.signTx(privBytes, tx)
+	signer, sig, err := gs.signTx(privBytes, tx, isPrivate)
 	if err != nil {
 		return "", err
 	}
 	var sigTx *types.Transaction
-	sigTx, err = tx.WithSignature(signer, sig)
+	sigTx, err = tx.WithSignature(signer, sig, isPrivate)
 	if err != nil {
 		return "", err
 	}
@@ -191,9 +198,9 @@ func (gs *GoSDK) contractCall(contractMethod *ContractMethod, funcType string) (
 	return hash, nil
 }
 
-func (gs *GoSDK) contractRead(contractMethod *ContractMethod, height uint64) (interface{}, error) {
+func (gs *GoSDK) contractRead(contractMethod *ContractMethod, height uint64, isPrivate bool) (interface{}, error) {
 
-	abiJson, data, err := contractMethod.checkArgs()
+	abiJson, data, err := contractMethod.checkArgs(isPrivate)
 	if err != nil {
 		return nil, err
 	}
@@ -215,11 +222,11 @@ func (gs *GoSDK) contractRead(contractMethod *ContractMethod, height uint64) (in
 
 	tx := types.NewTransaction(nonce, toAddress, big.NewInt(0), gs.GasLimit(), big.NewInt(0), data)
 
-	signer, sig, err := gs.signTx(privBytes, tx)
+	signer, sig, err := gs.signTx(privBytes, tx, isPrivate)
 	if err != nil {
 		return nil, err
 	}
-	sigTx, err := tx.WithSignature(signer, sig)
+	sigTx, err := tx.WithSignature(signer, sig, isPrivate)
 	if err != nil {
 		return nil, err
 	}
@@ -242,9 +249,13 @@ func (gs *GoSDK) contractRead(contractMethod *ContractMethod, height uint64) (in
 	return unpackResult(contractMethod.Method, abiJson, string(rpcResult.Result.Data))
 }
 
-func (gs *GoSDK) signTx(privBytes []byte, tx *types.Transaction) (signer types.Signer, sig []byte, err error) {
+func (gs *GoSDK) signTx(privBytes []byte, tx *types.Transaction, isPrivate bool) (signer types.Signer, sig []byte, err error) {
 
-	signer = new(types.HomesteadSigner)
+	if isPrivate {
+		signer = new(types.AnnsteadSigner)
+	} else {
+		signer = new(types.HomesteadSigner)
+	}
 
 	privkey, err := crypto.ToECDSA(privBytes)
 	if err != nil {

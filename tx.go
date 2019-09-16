@@ -33,7 +33,7 @@ type Tx struct {
 	Value   *big.Int `json:"value"`
 }
 
-func (gs *GoSDK) sendTx(sendTx *Tx, funcType string) (hash string, err error) {
+func (gs *GoSDK) sendTx(sendTx *Tx, funcType string, isPrivate bool) (hash string, err error) {
 	if sendTx.PrivKey == "" {
 		return "", fmt.Errorf("account privkey is empty.")
 	}
@@ -75,11 +75,11 @@ func (gs *GoSDK) sendTx(sendTx *Tx, funcType string) (hash string, err error) {
 
 	tx := types.NewTransaction(nonce, to, value, gs.GasLimit(), big.NewInt(0), data)
 
-	signer, sig, err := gs.signTx(privBytes, tx)
+	signer, sig, err := gs.signTx(privBytes, tx, isPrivate)
 	if err != nil {
 		return "", err
 	}
-	sigTx, err := tx.WithSignature(signer, sig)
+	sigTx, err := tx.WithSignature(signer, sig, isPrivate)
 	if err != nil {
 		return "", err
 	}
