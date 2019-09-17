@@ -16,6 +16,7 @@ package sdk
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -164,6 +165,8 @@ func (gs *GoSDK) contractCall(contractMethod *ContractMethod, funcType string, i
 		}
 	}
 	toAddress := common.HexToAddress(contractMethod.Contract)
+
+	fmt.Printf("contract address", contractMethod.Contract)
 
 	tx := types.NewTransaction(nonce, toAddress, big.NewInt(0), gs.GasLimit(), big.NewInt(0), data)
 
