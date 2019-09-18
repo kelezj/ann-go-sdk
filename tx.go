@@ -57,7 +57,7 @@ func (gs *GoSDK) sendTx(sendTx *Tx, funcType string, isPrivate bool) (hash strin
 		if err != nil {
 			return "", err
 		}
-		nonce, err = gs.getNonce(common.Bytes2Hex(addrBytes))
+		nonce, err = gs.getNonce(common.Bytes2Hex(addrBytes), isPrivate)
 		if err != nil {
 			return "", err
 		}

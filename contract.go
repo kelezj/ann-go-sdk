@@ -16,7 +16,6 @@ package sdk
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 
@@ -106,7 +105,7 @@ func (gs *GoSDK) contractCreate(contract *ContractCreate, isPrivate bool) (map[s
 
 	nonce := contract.Nonce
 	if nonce == 0 {
-		nonce, err = gs.getNonce(common.Bytes2Hex(addrBytes))
+		nonce, err = gs.getNonce(common.Bytes2Hex(addrBytes), isPrivate)
 		if err != nil {
 			return nil, err
 		}
@@ -159,14 +158,12 @@ func (gs *GoSDK) contractCall(contractMethod *ContractMethod, funcType string, i
 		if err != nil {
 			return "", err
 		}
-		nonce, err = gs.getNonce(common.Bytes2Hex(addrBytes))
+		nonce, err = gs.getNonce(common.Bytes2Hex(addrBytes), isPrivate)
 		if err != nil {
 			return "", err
 		}
 	}
 	toAddress := common.HexToAddress(contractMethod.Contract)
-
-	fmt.Printf("contract address", contractMethod.Contract)
 
 	tx := types.NewTransaction(nonce, toAddress, big.NewInt(0), gs.GasLimit(), big.NewInt(0), data)
 
@@ -203,7 +200,7 @@ func (gs *GoSDK) contractCall(contractMethod *ContractMethod, funcType string, i
 
 func (gs *GoSDK) contractRead(contractMethod *ContractMethod, height uint64, isPrivate bool) (interface{}, error) {
 
-	abiJson, data, err := contractMethod.checkArgs(isPrivate)
+	abiJson, data, err := contractMethod.checkArgs(false)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +213,7 @@ func (gs *GoSDK) contractRead(contractMethod *ContractMethod, height uint64, isP
 		if err != nil {
 			return nil, err
 		}
-		nonce, err = gs.getNonce(common.Bytes2Hex(addrBytes))
+		nonce, err = gs.getNonce(common.Bytes2Hex(addrBytes), isPrivate)
 		if err != nil {
 			return nil, err
 		}

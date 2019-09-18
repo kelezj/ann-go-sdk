@@ -38,16 +38,21 @@ const (
 	QueryTxExecution = 0x01
 )
 
-func (gs *GoSDK) getNonce(addr string) (uint64, error) {
+func (gs *GoSDK) getNonce(addr string, isPrivate bool) (uint64, error) {
 	if !common.IsHexAddress(addr) {
 		return 0, fmt.Errorf("Invalid address(is not hex) %s", addr)
 	}
 	if strings.Index(addr, "0x") == 0 {
 		addr = addr[2:]
 	}
-
+	var query []byte
 	address := common.Hex2Bytes(addr)
-	query := append([]byte{types.QueryType_Nonce}, address...)
+	if isPrivate {
+		query = append([]byte{types.QueryType_Nonce}, byte(0x01))
+	} else {
+		query = append([]byte{types.QueryType_Nonce}, byte(0x00))
+	}
+	query = append(query, address...)
 	rpcResult := new(types.ResultQuery)
 	err := gs.sendTxCall("query", query, rpcResult)
 	if err != nil {

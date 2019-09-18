@@ -55,8 +55,8 @@ func (gs *GoSDK) AccountCreate() (Account, error) {
 
 //--------------------------------Tx-------------------------
 
-func (gs *GoSDK) Nonce(addr string) (uint64, error) {
-	return gs.getNonce(addr)
+func (gs *GoSDK) Nonce(addr string, isPrivate bool) (uint64, error) {
+	return gs.getNonce(addr, isPrivate)
 }
 
 func (gs *GoSDK) CheckHealth() (bool, error) {
